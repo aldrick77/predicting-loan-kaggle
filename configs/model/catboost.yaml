@@ -1,0 +1,10 @@
+# configs/model/catboost.yaml
+name: "catboost"
+params:
+  iterations: 2000
+  learning_rate: 0.05
+  depth: 6
+  eval_metric: "AUC"
+  verbose: 100
+  allow_writing_files: False
+  random_seed: 42
