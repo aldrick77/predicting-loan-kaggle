@@ -1,2 +1,0 @@
-- model=catboost
-- model.params.verbose=100
