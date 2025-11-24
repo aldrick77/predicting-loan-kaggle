@@ -3,7 +3,8 @@ from omegaconf import DictConfig
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
-from catboost import CatBoostClassifier, Pool
+from catboost import CatBoostClassifier
+from lightgbm import LGBMClassifier  # <--- NOUVEAU
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import LabelEncoder
@@ -35,13 +36,12 @@ def train(cfg: DictConfig):
         y = df_train[cfg.training.target_col]
         X_test = df_test.drop(columns=[cfg.training.id_col])
         
-        # Identification des colonnes catégorielles
         cat_features = X.select_dtypes(include=['object', 'category']).columns.tolist()
-        print(f"Catégories identifiées : {cat_features}")
+        print(f"Catégories : {cat_features}")
 
-        # 4. Encodage Spécifique selon le modèle
-        if cfg.model.name == "xgboost":
-            # XGBoost a besoin de chiffres (Label Encoding)
+        # 4. Encodage
+        if cfg.model.name in ["xgboost", "lightgbm"]: # <--- LGBM rejoint XGBoost ici
+            print("Encodage Label Encoding pour XGB/LGBM...")
             for col in cat_features:
                 le = LabelEncoder()
                 all_values = pd.concat([X[col], X_test[col]], axis=0).astype(str)
@@ -50,10 +50,9 @@ def train(cfg: DictConfig):
                 X_test[col] = le.transform(X_test[col].astype(str))
                 
         elif cfg.model.name == "catboost":
-            # CatBoost veut juste qu'on remplisse les NaN par des strings
+            print("Encodage Natif pour CatBoost...")
             X[cat_features] = X[cat_features].fillna("Missing")
             X_test[cat_features] = X_test[cat_features].fillna("Missing")
-            # On ne fait PAS de Label Encoding, CatBoost s'en charge !
 
         # 5. Cross-Validation
         skf = StratifiedKFold(n_splits=cfg.training.n_splits, shuffle=True, random_state=42)
@@ -67,23 +66,37 @@ def train(cfg: DictConfig):
             X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
             y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
             
+            # --- BLOC MODELES ---
             if cfg.model.name == "xgboost":
                 model = XGBClassifier(**cfg.model.params, early_stopping_rounds=50)
                 model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
-                val_p = model.predict_proba(X_val)[:, 1]
-                test_p = model.predict_proba(X_test)[:, 1]
+                
+            elif cfg.model.name == "lightgbm": # <--- NOUVEAU BLOC
+                # LightGBM demande des callbacks pour le early_stopping maintenant, 
+                # mais la méthode simple .fit marche encore souvent.
+                # Pour être sûr, on utilise l'API sklearn standard
+                model = LGBMClassifier(**cfg.model.params)
+                # Astuce : LGBM peut être verbeux, on coupe les logs
+                model.fit(
+                    X_train, y_train, 
+                    eval_set=[(X_val, y_val)],
+                    eval_metric="auc",
+                    callbacks=None # On gère manuellement si besoin, mais par défaut c'est ok
+                )
                 
             elif cfg.model.name == "catboost":
                 model = CatBoostClassifier(**cfg.model.params)
                 model.fit(
                     X_train, y_train,
-                    cat_features=cat_features, # Magie CatBoost
+                    cat_features=cat_features,
                     eval_set=(X_val, y_val),
                     early_stopping_rounds=50,
                     verbose=False
                 )
-                val_p = model.predict_proba(X_val)[:, 1]
-                test_p = model.predict_proba(X_test)[:, 1]
+            # --------------------
+
+            val_p = model.predict_proba(X_val)[:, 1]
+            test_p = model.predict_proba(X_test)[:, 1]
 
             oof_preds[val_idx] = val_p
             test_preds += test_p / cfg.training.n_splits
@@ -93,12 +106,10 @@ def train(cfg: DictConfig):
             print(f"Fold {fold+1} AUC: {score:.5f}")
             mlflow.log_metric(f"auc_fold_{fold+1}", score)
 
-        # 6. Resultats
+        # 6. Fin
         overall_auc = roc_auc_score(y, oof_preds)
         print(f"\n--> Overall CV AUC ({cfg.model.name}): {overall_auc:.5f}")
-        mlflow.log_metric("overall_auc", overall_auc)
         
-        # Sauvegarde (avec le nom du modèle pour pas écraser)
         output_file = f"outputs/submission_{cfg.model.name}.csv"
         submission = pd.DataFrame({'id': sample_sub['id'], 'loan_paid_back': test_preds})
         submission.to_csv(output_file, index=False)

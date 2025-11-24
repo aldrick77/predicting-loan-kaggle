@@ -1,0 +1,15 @@
+# configs/model/catboost_tuned.yaml
+name: "catboost"
+params:
+  iterations: 3000        # On augmente (avant 2000)
+  learning_rate: 0.03     # On diminue pour plus de précision (avant 0.05)
+  depth: 6                # On garde 6, c'est stable
+  l2_leaf_reg: 3          # Un peu de régularisation
+  loss_function: 'Logloss'
+  eval_metric: 'AUC'
+  random_strength: 0.5    # Un peu d'aléatoire pour robustifier
+  bagging_temperature: 0.2
+  verbose: 100
+  allow_writing_files: False
+  random_seed: 42
+  task_type: "GPU"     # Utilisation du GPU pour accélérer l'entraînement

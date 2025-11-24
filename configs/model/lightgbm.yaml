@@ -1,0 +1,14 @@
+# configs/model/lightgbm.yaml
+name: "lightgbm"
+params:
+  n_estimators: 2000
+  learning_rate: 0.05
+  num_leaves: 31          # Spécifique à LGBM (contrôle la complexité)
+  max_depth: -1           # LGBM préfère gérer la profondeur seul
+  reg_alpha: 0.1          # Régularisation L1
+  reg_lambda: 0.1         # Régularisation L2
+  objective: "binary"
+  metric: "auc"
+  verbose: -1             # Silencieux
+  random_state: 42
+  n_jobs: -1
