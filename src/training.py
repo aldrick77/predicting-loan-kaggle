@@ -77,12 +77,12 @@ def train(cfg: DictConfig):
                 # mais la méthode simple .fit marche encore souvent.
                 # Pour être sûr, on utilise l'API sklearn standard
                 model = LGBMClassifier(**cfg.model.params)
-                # Astuce : LGBM peut être verbeux, on coupe les logs
+                
                 model.fit(
                     X_train, y_train, 
                     eval_set=[(X_val, y_val)],
                     eval_metric="auc",
-                    callbacks=None # On gère manuellement si besoin, mais par défaut c'est ok
+                    callbacks=None 
                 )
                 
             elif cfg.model.name == "catboost":
