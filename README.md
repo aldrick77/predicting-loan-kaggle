@@ -43,3 +43,28 @@ The project follows a strict **MLOps structure** for reproducibility:
 │   └── diagnosis.py            # Model Debugging & Interpretation
 ├── pyproject.toml       # Poetry dependencies
 └── README.md            # Project documentation
+
+
+🚀 How to Run
+1. Installation
+Clone the repository and install dependencies using Poetry:
+git clone https://github.com/aldrick77/predicting-loan-kaggle.git
+cd predicting-loan-payback
+poetry install
+
+2. Data Setup
+Place the competition data (train.csv, test.csv, sample_submission.csv) in the data/raw/ folder.
+
+3. Training (Pipeline)
+Train the different models to generate OOF (Out-Of-Fold) predictions:
+# Train CatBoost 
+poetry run python src/training.py model=catboost
+
+# Train 
+poetry run python src/training.py model=xgboost
+poetry run python src/training.py model=lightgbm
+
+4. Ensembling (Hill Climbing)
+Run the optimization script to find the perfect mathematical blend:
+poetry run python src/hill_climbing.py
+
