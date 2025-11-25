@@ -10,6 +10,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import LabelEncoder
 import mlflow
 import os
+from datetime import datetime
 from feature_engineering import create_features
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
@@ -106,11 +107,25 @@ def train(cfg: DictConfig):
             print(f"Fold {fold+1} AUC: {score:.5f}")
             mlflow.log_metric(f"auc_fold_{fold+1}", score)
 
-        # 6. Fin
+        # 6. Fin & Sauvegardes
         overall_auc = roc_auc_score(y, oof_preds)
         print(f"\n--> Overall CV AUC ({cfg.model.name}): {overall_auc:.5f}")
+        mlflow.log_metric("overall_auc", overall_auc)
         
-        output_file = f"outputs/submission_{cfg.model.name}.csv"
+        # --- SAUVEGARDE OOF (NOUVEAU) ---
+        # On a besoin de ça pour le Stacking
+        oof_file = f"outputs/oof_{cfg.model.name}.csv"
+        # Attention: on doit sauvegarder avec les IDs pour être sûr de l'ordre
+        oof_df = pd.DataFrame({
+            'id': df_train['id'], # On récupère les IDs du train
+            'pred': oof_preds
+        })
+        oof_df.to_csv(oof_file, index=False)
+        print(f"OOF predictions saved: {oof_file}")
+        # --------------------------------
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        # Sauvegarde Submission (Test)
+        output_file = f"outputs/submission_{cfg.model.name}_{timestamp}.csv"
         submission = pd.DataFrame({'id': sample_sub['id'], 'loan_paid_back': test_preds})
         submission.to_csv(output_file, index=False)
         print(f"Submission saved: {output_file}")

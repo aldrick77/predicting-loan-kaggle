@@ -11,7 +11,7 @@ import yaml
 # Configuration rapide
 TRAIN_PATH = "data/raw/train.csv"
 TEST_PATH = "data/raw/test.csv"
-N_TRIALS = 20  # Nombre d'essais (Mets 50 ou 100 si tu as le temps, 20 pour tester vite)
+N_TRIALS = 20  # Nombre d'essais 
 
 def load_data():
     df_train = pd.read_csv(TRAIN_PATH)
@@ -73,7 +73,7 @@ def objective(trial):
 if __name__ == "__main__":
     print("🚀 Démarrage de l'optimisation CatBoost avec Optuna...")
     
-    # Création de l'étude (On cherche à MAXIMISER l'AUC)
+    # Création de l'étude
     study = optuna.create_study(direction='maximize')
     study.optimize(objective, n_trials=N_TRIALS)
 
@@ -94,4 +94,3 @@ if __name__ == "__main__":
         yaml.dump({"name": "catboost", "params": best_params}, f)
     
     print("\n💾 Configuration sauvegardée dans 'configs/model/catboost_tuned.yaml'")
-    print("Tu peux maintenant lancer : poetry run python src/training.py model=catboost_tuned")

@@ -1,9 +1,9 @@
 import pandas as pd
 import os
 
-# Chemins vers tes fichiers de soumission (vérifie qu'ils sont bien dans outputs/)
-# SUB_XGB = Ton fichier à 0.92198
-# SUB_CAT = Ton fichier à 0.92279
+
+# SUB_XGB 0.92198
+# SUB_CAT 0.92279
 SUB_XGB = "outputs/submission.csv"          
 SUB_CAT = "outputs/submission_catboost.csv" 
 
@@ -19,11 +19,9 @@ def blend():
     df_cat = pd.read_csv(SUB_CAT)
     
     # 2. Sécurité : Vérifier que les IDs sont bien alignés
-    # Si les IDs ne sont pas dans le même ordre, on casse tout.
     pd.testing.assert_series_equal(df_xgb['id'], df_cat['id'], obj="IDs")
     print("Check intégrité : Les IDs correspondent parfaitement.")
     
-    # 3. La Formule Magique (Moyenne Pondérée)
     # CatBoost est meilleur (0.9228 vs 0.9220), on lui donne plus de poids.
     # Poids : 65% CatBoost / 35% XGBoost
     w_cat = 0.65
@@ -40,7 +38,6 @@ def blend():
     print(f"Moyenne XGB      : {df_xgb['loan_paid_back'].mean():.4f}")
     print(f"Moyenne CatBoost : {df_cat['loan_paid_back'].mean():.4f}")
     print(f"Moyenne Blend    : {df_blend['loan_paid_back'].mean():.4f}")
-    print("--> Tu peux soumettre ce fichier sur Kaggle !")
 
 if __name__ == "__main__":
     blend()

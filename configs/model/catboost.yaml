@@ -8,3 +8,5 @@ params:
   verbose: 100
   allow_writing_files: False
   random_seed: 42
+  task_type: "GPU"
+  border_count: 254
